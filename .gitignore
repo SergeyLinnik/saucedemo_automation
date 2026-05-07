@@ -1,0 +1,17 @@
+# Виртуальное окружение
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# Логи и временные файлы
+*.log
+*.tmp
+
+# Драйверы браузеров
+chromedriver.exe
+geckodriver.exe
