@@ -1,34 +1,20 @@
-\# Проект автоматизации тестирования Saucedemo.com
+# saucedemo_automation
 
+# Автоматизация тестирования сайта Магазин
 
+Проект автоматизированного тестирования интернет-магазина на Selenium + PyTest.
 
-\## Описание проекта
+## Сайт
+http://91.197.96.80/
 
-Автоматизированные тесты для интернет-магазина \[SauceDemo](https://www.saucedemo.com/) с использованием Selenium WebDriver.
+## Стек
+- Python 3.11+
+- Selenium WebDriver 4.x
+- PyTest
+- Allure
 
-
-
-\## Технологии
-
-\- Python 3.14
-
-\- Selenium WebDriver
-
-\- WebDriver Manager
-
-\- Firefox (GeckoDriver)
-
-
-
-\## Установка и запуск
-
-
-
-\### 1. Клонирование репозитория
-
+## Установка
 ```bash
-
-git clone <url-вашего-репозитория>
-
-cd saucedemo-automation
-
+python -m venv venv
+venv\Scripts\activate      # Windows
+pip install -r requirements.txt
