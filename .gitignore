@@ -1,4 +1,30 @@
-venv/ 
-__pycache__/ 
-.pytest_cache/ 
-reports/ 
+# Виртуальное окружение
+venv/
+.venv/
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Кэш pytest
+.pytest_cache/
+
+# Отчёты Allure
+reports/
+allure-results/
+
+# Архив старых экспериментов
+archive/
+
+# Драйверы браузеров
+*.exe
+*.dll
+
+# Настройки IDE
+.idea/
+.vscode/
+
+# Логи
+*.log
