@@ -1,5 +1,6 @@
 from pages.inventory_page import InventoryPage
 from pages.cart_page import CartPage
+from pages.locators import CartLocators
 import time
 
 
@@ -47,10 +48,10 @@ def test_cart_total(driver_buyer):
 def test_checkout_button_exists(driver_buyer):
     """Кнопка 'Оформить заказ' есть и активна"""
     inventory = InventoryPage(driver_buyer)
-    inventory.increase_quantity(inventory.get_product_cards()[0])
+    inventory.increase_quantity(inventory.get_first_card())
     inventory.open_cart()
     cart = CartPage(driver_buyer)
-    button = cart.find_element(CartPage.CHECKOUT_BUTTON)
+    button = cart.find_element(CartLocators.CHECKOUT_BUTTON)
     assert button.is_enabled(), "Кнопка 'Оформить заказ' неактивна"
 
 

@@ -1,14 +1,16 @@
-from selenium.webdriver.common.by import By
+"""Страница авторизации."""
+from selenium.webdriver.remote.webdriver import WebDriver
+
 from pages.base_page import BasePage
+from pages.locators import LoginLocators
+
 
 class LoginPage(BasePage):
-    # Ищем по атрибуту placeholder (текст внутри поля)
-    USERNAME_INPUT = (By.CSS_SELECTOR, "input[placeholder='Логин']")
-    PASSWORD_INPUT = (By.CSS_SELECTOR, "input[placeholder='Пароль']")
-    # Ищем кнопку по тексту на ней
-    LOGIN_BUTTON = (By.XPATH, "//button[contains(text(), 'Войти')]")
+    def __init__(self, driver: WebDriver) -> None:
+        super().__init__(driver)
 
-    def login(self, username, password):
-        self.enter_text(self.USERNAME_INPUT, username)
-        self.enter_text(self.PASSWORD_INPUT, password)
-        self.click(self.LOGIN_BUTTON)
+    def login(self, username: str, password: str) -> None:
+        """Авторизует пользователя."""
+        self.enter_text(LoginLocators.USERNAME_INPUT, username)
+        self.enter_text(LoginLocators.PASSWORD_INPUT, password)
+        self.click(LoginLocators.LOGIN_BUTTON)

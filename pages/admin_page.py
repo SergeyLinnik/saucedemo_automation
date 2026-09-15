@@ -1,122 +1,147 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import Select
-from pages.base_page import BasePage
+"""Страницы администратора: список товаров, редактирование, создание."""
 import time
+from typing import List, Optional
+
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.ui import Select
+
+from config import (
+    ADMIN_CREATE_URL,
+    ADMIN_MANAGE_URL,
+    ANIMATION_DELAY,
+)
+from pages.base_page import BasePage
+from pages.exceptions import (
+    ButtonDisabledError,
+    EmptyProductListError,
+    FormValidationError,
+)
+from pages.locators import AdminLocators
 
 
 class AdminPage(BasePage):
-    ADMIN_URL = "http://91.197.96.80/manageProductsPage"
-    CREATE_URL = "http://91.197.96.80/createProduct"
+    def __init__(self, driver: WebDriver) -> None:
+        super().__init__(driver)
 
-    PRODUCT_CARDS = (By.CSS_SELECTOR, ".store-card")
-    # Более гибкий XPath для кнопок
-    EDIT_BUTTON = (By.XPATH, ".//button[contains(., 'edit')]")
-    DELETE_BUTTON = (By.XPATH, ".//button[contains(., 'delete')]")
-    ADD_PRODUCT_BUTTON = (By.XPATH, "//button[contains(text(),'Добавить товар')]")
+    # ---------- Навигация ----------
 
-    NAME_INPUT = (By.CSS_SELECTOR, "input[placeholder='Наименование']")
-    DESCRIPTION_INPUT = (By.CSS_SELECTOR, "input[placeholder='Описание']")
-    EXPECTED_CATEGORY_INPUT = (By.CSS_SELECTOR, "input[placeholder*='жидаемая']")
-    PRICE_INPUT = (By.CSS_SELECTOR, "input[placeholder='Цена']")
-    IMAGE_INPUT = (By.CSS_SELECTOR, "input[placeholder='Image Source']")
+    def open_manage_page(self) -> None:
+        self.driver.get(ADMIN_MANAGE_URL)
+        time.sleep(ANIMATION_DELAY)
 
-    CREATE_BUTTON = (By.XPATH, "//button[contains(text(),'Создать товар')]")
+    def open_create_page(self) -> None:
+        self.driver.get(ADMIN_CREATE_URL)
+        time.sleep(ANIMATION_DELAY)
 
-    def open_manage_page(self):
-        self.driver.get(self.ADMIN_URL)
-        time.sleep(2)
+    # ---------- Список товаров ----------
 
-    def open_create_page(self):
-        self.driver.get(self.CREATE_URL)
-        time.sleep(2)
+    def get_product_cards(self) -> List[WebElement]:
+        return self.driver.find_elements(*AdminLocators.PRODUCT_CARDS)
 
-    def get_product_cards(self):
-        return self.driver.find_elements(*self.PRODUCT_CARDS)
-
-    def get_product_name(self, card):
-        body = card.find_element(By.CSS_SELECTOR, ".card-body")
-        return body.text.split("\n")[0].strip()
-
-    def click_edit_first_product(self):
+    def get_first_card(self) -> WebElement:
         cards = self.get_product_cards()
-        assert len(cards) > 0, "Список товаров пуст"
-        edit_btn = cards[0].find_element(*self.EDIT_BUTTON)
+        if not cards:
+            raise EmptyProductListError("Список товаров в админке пуст")
+        return cards[0]
+
+    def click_edit_first_product(self) -> str:
+        """Нажимает edit у первого товара. Возвращает URL."""
+        card = self.get_first_card()
+        edit_btn = card.find_element(*AdminLocators.EDIT_BUTTON)
         ActionChains(self.driver).move_to_element(edit_btn).click().perform()
-        time.sleep(2)
+        time.sleep(ANIMATION_DELAY)
         return self.driver.current_url
 
-    def click_add_product(self):
-        btn = self.find_element(self.ADD_PRODUCT_BUTTON)
+    def click_add_product(self) -> str:
+        """Нажимает «Добавить товар». Возвращает URL."""
+        btn = self.find_element(AdminLocators.ADD_PRODUCT_BUTTON)
         ActionChains(self.driver).move_to_element(btn).click().perform()
-        time.sleep(2)
+        time.sleep(ANIMATION_DELAY)
         return self.driver.current_url
 
-    def _set_input(self, locator, value):
+    # ---------- Форма ----------
+
+    def _set_input(self, locator, value: str) -> None:
         element = self.find_element(locator)
         self.driver.execute_script("arguments[0].value = '';", element)
         self.driver.execute_script(f"arguments[0].value = '{value}';", element)
         self.driver.execute_script(
             "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));",
-            element
+            element,
         )
 
-    def _get_input(self, locator):
-        return self.find_element(locator).get_attribute('value')
+    def _get_input(self, locator) -> str:
+        return self.find_element(locator).get_attribute("value")
 
-    def set_name(self, value):
-        self._set_input(self.NAME_INPUT, value)
+    def set_name(self, value: str) -> None:
+        self._set_input(AdminLocators.NAME_INPUT, value)
 
-    def get_name(self):
-        return self._get_input(self.NAME_INPUT)
+    def get_name(self) -> str:
+        return self._get_input(AdminLocators.NAME_INPUT)
 
-    def _try_set_category(self, value):
-        """Категория может быть input ИЛИ select. Пробуем оба."""
-        # Вариант 1: input
+    def _try_set_category(self, value: str) -> Optional[str]:
+        """Категория может быть input ИЛИ select — пробуем оба."""
         try:
-            el = self.driver.find_element(
-                By.CSS_SELECTOR, "input[placeholder='Категория в списке']"
-            )
+            el = self.driver.find_element(*AdminLocators.CATEGORY_INPUT)
             self.driver.execute_script("arguments[0].value = '';", el)
             self.driver.execute_script(f"arguments[0].value = '{value}';", el)
             self.driver.execute_script(
                 "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", el
             )
             return "input"
-        except Exception:
+        except NoSuchElementException:
             pass
-        # Вариант 2: select
+
         try:
-            selects = self.driver.find_elements(By.CSS_SELECTOR, "select")
+            selects = self.driver.find_elements(*AdminLocators.SELECT_ELEMENT)
             if selects:
                 Select(selects[-1]).select_by_index(0)
                 return "select"
-        except Exception:
+        except NoSuchElementException:
             pass
+
         return None
 
-    def fill_full_form(self, name, desc, expected_cat, cat, price, image):
-        self._set_input(self.NAME_INPUT, name)
-        self._set_input(self.DESCRIPTION_INPUT, desc)
-        self._set_input(self.EXPECTED_CATEGORY_INPUT, expected_cat)
-        self._try_set_category(cat)  # может быть input или select
-        self._set_input(self.PRICE_INPUT, str(price))
-        self._set_input(self.IMAGE_INPUT, image)
+    def fill_full_form(
+        self,
+        name: str,
+        desc: str,
+        expected_cat: str,
+        cat: str,
+        price: int,
+        image: str,
+    ) -> None:
+        self._set_input(AdminLocators.NAME_INPUT, name)
+        self._set_input(AdminLocators.DESCRIPTION_INPUT, desc)
+        self._set_input(AdminLocators.EXPECTED_CATEGORY_INPUT, expected_cat)
+        self._try_set_category(cat)
+        self._set_input(AdminLocators.PRICE_INPUT, str(price))
+        self._set_input(AdminLocators.IMAGE_INPUT, image)
         time.sleep(0.5)
 
-    def is_create_button_enabled(self):
-        btn = self.find_element(self.CREATE_BUTTON)
+    def is_create_button_enabled(self) -> bool:
+        btn = self.find_element(AdminLocators.CREATE_BUTTON)
         return btn.is_enabled()
 
-    def click_create(self):
-        btn = self.find_element(self.CREATE_BUTTON)
+    def click_create(self) -> None:
+        btn = self.find_element(AdminLocators.CREATE_BUTTON)
         if not btn.is_enabled():
-            raise RuntimeError("Кнопка 'Создать товар' заблокирована.")
+            raise ButtonDisabledError(
+                "Кнопка «Создать товар» заблокирована — заполните все поля"
+            )
         ActionChains(self.driver).move_to_element(btn).click().perform()
-        time.sleep(2)
+        time.sleep(ANIMATION_DELAY)
 
-    def count_invalid_fields(self):
-        return len(self.driver.find_elements(By.CSS_SELECTOR, ".is-invalid"))
+    def count_invalid_fields(self) -> int:
+        return len(self.driver.find_elements(*AdminLocators.INVALID_FIELD))
 
-    def take_screenshot(self, path):
-        self.driver.save_screenshot(path)
+    def assert_form_invalid(self) -> None:
+        """Бросает FormValidationError, если форма считается валидной."""
+        if self.count_invalid_fields() == 0:
+            raise FormValidationError(
+                "Пустая форма не помечает поля как .is-invalid"
+            )
